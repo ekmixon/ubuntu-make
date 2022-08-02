@@ -44,7 +44,7 @@ class ArduinoIDEInContainer(ContainerTests, test_electronics.ArduinoIDETests):
         """Installing arduino ide should fail if download page has significantly changed"""
         download_page_file_path = os.path.join(get_data_dir(), "server-content", "www.arduino.cc", "en", "Main",
                                                "Software")
-        umake_command = self.command('{} electronics arduino'.format(UMAKE))
+        umake_command = self.command(f'{UMAKE} electronics arduino')
         self.bad_download_page_test(umake_command, download_page_file_path)
         self.assertFalse(self.launcher_exists_and_is_pinned(self.desktop_filename))
         self.assertFalse(self.is_in_path(self.exec_link))
@@ -53,7 +53,7 @@ class ArduinoIDEInContainer(ContainerTests, test_electronics.ArduinoIDETests):
         """Installing arduino ide should fail if checksum link is unparsable"""
         download_page_file_path = os.path.join(get_data_dir(), "server-content", "downloads.arduino.cc",
                                                "arduino-mock.sha512sum.txt")
-        umake_command = self.command('{} electronics arduino'.format(UMAKE))
+        umake_command = self.command(f'{UMAKE} electronics arduino')
         self.bad_download_page_test(umake_command, download_page_file_path)
         self.assertFalse(self.launcher_exists_and_is_pinned(self.desktop_filename))
         self.assertFalse(self.is_in_path(self.exec_link))
@@ -75,7 +75,7 @@ class EagleTestsInContainer(ContainerTests, test_electronics.EagleTests):
         """Installing eagle ide should fail if download page has significantly changed"""
         download_page_file_path = os.path.join(get_data_dir(), "server-content", "eagle-updates.circuits.io",
                                                "downloads", "latest.html")
-        umake_command = self.command('{} electronics eagle'.format(UMAKE))
+        umake_command = self.command(f'{UMAKE} electronics eagle')
         self.bad_download_page_test(umake_command, download_page_file_path)
         self.assertFalse(self.launcher_exists_and_is_pinned(self.desktop_filename))
         self.assertFalse(self.is_in_path(self.exec_link))
@@ -98,7 +98,7 @@ class FritzingInContainer(ContainerTests, test_electronics.FritzingTests):
         """Installing Fritzing should fail if download page has significantly changed"""
         download_page_file_path = os.path.join(get_data_dir(), "server-content", "api.github.com",
                                                "repos", "Fritzing", "Fritzing-app", "releases", "latest")
-        umake_command = self.command('{} electronics Fritzing'.format(UMAKE))
+        umake_command = self.command(f'{UMAKE} electronics Fritzing')
         self.bad_download_page_test(self.command(self.command_args), download_page_file_path)
         self.assertFalse(self.launcher_exists_and_is_pinned(self.desktop_filename))
         self.assertFalse(self.is_in_path(self.exec_link))
@@ -110,6 +110,6 @@ class FritzingInContainer(ContainerTests, test_electronics.FritzingTests):
         with swap_file_and_restore(download_page_file_path) as content:
             with open(download_page_file_path, "w") as newfile:
                 newfile.write(content.replace("-edge", ""))
-            self.child = umake_command = self.command('{} ide fritzing --edge'.format(UMAKE))
+            self.child = umake_command = self.command(f'{UMAKE} ide fritzing --edge')
             self.assertFalse(self.launcher_exists_and_is_pinned(self.desktop_filename))
             self.assertFalse(self.is_in_path(self.exec_link))

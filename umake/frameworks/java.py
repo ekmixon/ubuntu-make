@@ -66,27 +66,33 @@ class AdoptOpenJDK(umake.frameworks.baseinstaller.BaseInstaller):
 
         logger.debug("Set the version in the download url")
 
-        error_msg = result[self.download_page].error
-        if error_msg:
-            logger.error("An error occurred while downloading {}: {}".format(self.download_page, error_msg))
+        if error_msg := result[self.download_page].error:
+            logger.error(
+                f"An error occurred while downloading {self.download_page}: {error_msg}"
+            )
+
             UI.return_main_screen(status_code=1)
 
         for line in result[self.download_page].buffer:
             line_content = line.decode()
             with suppress(AttributeError):
                 if self.lts and "most_recent_lts" in line_content:
-                    version = re.search(r': (.*),', line_content).group(1)
+                    version = re.search(r': (.*),', line_content)[1]
                 elif not self.lts and "most_recent_feature_release" in line_content:
-                    version = re.search(r': (.*),', line_content).group(1)
+                    version = re.search(r': (.*),', line_content)[1]
 
         if not result:
             logger.error("Download page changed its syntax or is not parsable")
             UI.return_main_screen(status_code=1)
 
-        self.download_page = "https://api.adoptopenjdk.net/v3/assets/latest/{}/".format(version) + \
-                             "{}?release=latest&".format(self.jvm_impl) + \
-                             "jvm_impl={}".format(self.jvm_impl) + \
-                             "&vendor=adoptopenjdk&="
+        self.download_page = (
+            (
+                f"https://api.adoptopenjdk.net/v3/assets/latest/{version}/"
+                + f"{self.jvm_impl}?release=latest&"
+            )
+            + f"jvm_impl={self.jvm_impl}"
+        ) + "&vendor=adoptopenjdk&="
+
         DownloadCenter([DownloadItem(self.download_page)], self.get_metadata_and_check_license, download=False)
 
     def parse_download_link(self, line, in_download):
@@ -147,7 +153,7 @@ class OpenJFX(umake.frameworks.baseinstaller.BaseInstaller):
         if in_download and 'linux-x64_bin-sdk.zip.sha256' in line:
             p = re.search(r'href="(https.*)"', line)
             with suppress(AttributeError):
-                self.new_download_url = p.group(1)
+                self.new_download_url = p[1]
         return (None, in_download)
 
     @MainLoop.in_mainloop_thread

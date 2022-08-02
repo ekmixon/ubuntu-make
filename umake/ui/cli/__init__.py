@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 def rlinput(prompt, prefill=''):
     readline.set_startup_hook(lambda: readline.insert_text(prefill))
     try:
-        return input(prompt + " ")
+        return input(f"{prompt} ")
     finally:
         readline.set_startup_hook()
 
@@ -77,7 +77,7 @@ class CliUI(UI):
                     # don't recall the callback
                     return False
                 else:
-                    logger.error("Unexcepted content type to display to CLI UI: {}".format(contentType))
+                    logger.error(f"Unexcepted content type to display to CLI UI: {contentType}")
                     MainLoop().quit(status_code=1)
                 break
             except InputError as e:
@@ -148,9 +148,13 @@ def mangle_args_for_default_framework(args):
         pending_args.append(arg)
 
     # this happened only if there is no argument after the category name
-    if category_name and not framework_completed:
-        if BaseCategory.categories[category_name].default_framework is not None:
-            result_args.append(BaseCategory.categories[category_name].default_framework.prog_name)
+    if (
+        category_name
+        and not framework_completed
+        and BaseCategory.categories[category_name].default_framework
+        is not None
+    ):
+        result_args.append(BaseCategory.categories[category_name].default_framework.prog_name)
 
     # let the rest in
     result_args.extend(pending_args)
@@ -175,7 +179,8 @@ def get_frameworks_list_output(args):
             if category["category_name"] == "main" and len(category["frameworks"]) == 0:
                 continue
 
-            print_result += "{}: {}".format(category["category_name"], category["category_description"])
+            print_result += f'{category["category_name"]}: {category["category_description"]}'
+
 
             cat_is_installed = str()
             if category["is_installed"] == BaseCategory.NOT_INSTALLED:
@@ -186,22 +191,22 @@ def get_frameworks_list_output(args):
                 cat_is_installed = _("fully installed")
 
             if cat_is_installed:
-                print_result = "{} [{}]".format(print_result, cat_is_installed)
+                print_result = f"{print_result} [{cat_is_installed}]"
 
             print_result += "\n"
 
             # Sort the frameworks to prevent a random list at each new program execution
             for framework in sorted(category["frameworks"], key=lambda fram: fram["framework_name"]):
-                if args.list_available:
-                    if not framework["is_installable"]:
-                        continue
+                if args.list_available and not framework["is_installable"]:
+                    continue
 
-                print_result += "\t{}: {}".format(framework["framework_name"], framework["framework_description"])
+                print_result += f'\t{framework["framework_name"]}: {framework["framework_description"]}'
+
 
                 if not framework["is_installable"]:
-                    print_result = _("{} [not installable on this machine]".format(print_result))
+                    print_result = _(f"{print_result} [not installable on this machine]")
                 elif framework["is_installed"]:
-                    print_result = _("{} [installed]".format(print_result))
+                    print_result = _(f"{print_result} [installed]")
 
                 print_result += '\n'
     elif args.list_installed:
@@ -210,9 +215,9 @@ def get_frameworks_list_output(args):
             # Sort the frameworks to prevent a random list at each new program execution
             for framework in sorted(category["frameworks"], key=lambda fram: fram["framework_name"]):
                 if framework["is_installed"]:
-                    print_result += "{}: {}\n".format(framework["framework_name"],
-                                                      framework["framework_description"])
-                    print_result += "\t{}: {}\n".format(_("path"), framework["install_path"])
+                    print_result += f'{framework["framework_name"]}: {framework["framework_description"]}\n'
+
+                    print_result += f'\t{_("path")}: {framework["install_path"]}\n'
 
         if not print_result:
             print_result = _("No frameworks are currently installed")

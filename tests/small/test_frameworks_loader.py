@@ -219,13 +219,17 @@ class TestFrameworkLoader(BaseFrameworkLoader):
 
     def test_default_install_path(self):
         """Default install path is what we expect, based on category-and framework prog_name"""
-        self.assertEqual(self.categoryA.frameworks["framework-b"].install_path,
-                         os.path.expanduser("~/{}/category-a/framework-b".format(INSTALL_DIR)))
+        self.assertEqual(
+            self.categoryA.frameworks["framework-b"].install_path,
+            os.path.expanduser(f"~/{INSTALL_DIR}/category-a/framework-b"),
+        )
 
     def test_specified_at_load_install_path(self):
         """Default install path is overridden by framework specified install path at load time"""
-        self.assertEqual(self.categoryA.frameworks["framework-a"].install_path,
-                         os.path.expanduser("~/{}/custom/frameworka".format(INSTALL_DIR)))
+        self.assertEqual(
+            self.categoryA.frameworks["framework-a"].install_path,
+            os.path.expanduser(f"~/{INSTALL_DIR}/custom/frameworka"),
+        )
 
     def test_no_restriction_installable_framework(self):
         """Framework with an no arch or version restriction is installable"""
@@ -298,7 +302,7 @@ class TestFrameworkLoader(BaseFrameworkLoader):
         args.accept_license = False
         args.remove = False
         with patch.object(self.CategoryHandler.categories[args.category].frameworks["framework-b"], "setup")\
-                as setup_call:
+                    as setup_call:
             self.CategoryHandler.categories[args.category].run_for(args)
 
             self.assertTrue(setup_call.called)
@@ -313,7 +317,7 @@ class TestFrameworkLoader(BaseFrameworkLoader):
         args.accept_license = False
         args.remove = False
         with patch.object(self.CategoryHandler.categories[args.category].frameworks["framework-a"], "setup")\
-                as setup_call:
+                    as setup_call:
             self.CategoryHandler.categories[args.category].run_for(args)
             self.assertTrue(setup_call.called)
             self.assertEqual(setup_call.call_args, call(install_path=None, auto_accept_license=False))
@@ -327,7 +331,7 @@ class TestFrameworkLoader(BaseFrameworkLoader):
         args.accept_license = False
         args.remove = True
         with patch.object(self.CategoryHandler.categories[args.category].frameworks["framework-b"], "remove")\
-                as remove_call:
+                    as remove_call:
             self.CategoryHandler.categories[args.category].run_for(args)
 
             self.assertTrue(remove_call.called)
@@ -342,7 +346,7 @@ class TestFrameworkLoader(BaseFrameworkLoader):
         args.accept_license = False
         args.destdir = None
         with patch.object(self.CategoryHandler.categories[args.category].frameworks["framework-a"], "remove")\
-                as remove_call:
+                    as remove_call:
             self.CategoryHandler.categories[args.category].run_for(args)
 
             self.assertTrue(remove_call.called)
@@ -388,7 +392,7 @@ class TestFrameworkLoader(BaseFrameworkLoader):
         args.accept_license = False
         args.remove = True
         with patch.object(self.CategoryHandler.categories[args.category].frameworks["framework-r-installed"], "remove")\
-                as remove_call:
+                    as remove_call:
             self.CategoryHandler.categories[args.category].run_for(args)
 
             self.assertTrue(remove_call.called)
@@ -403,7 +407,7 @@ class TestFrameworkLoader(BaseFrameworkLoader):
         args.accept_license = True
         args.remove = False
         with patch.object(self.CategoryHandler.categories[args.category].frameworks["framework-b"], "setup")\
-                as setup_call:
+                    as setup_call:
             self.CategoryHandler.categories[args.category].run_for(args)
 
             self.assertTrue(setup_call.called)
@@ -488,8 +492,12 @@ class TestFrameworkLoaderWithValidConfig(BaseFrameworkLoader):
         self.assertEqual(self.categoryA.frameworks["framework-b"].install_path,
                          "/home/didrocks/foo/bar/android-studio")
         # isn't in the config
-        self.assertEqual(self.CategoryHandler.categories['category-c'].frameworks["framework-a"].install_path,
-                         os.path.expanduser("~/{}/category-c/framework-a".format(INSTALL_DIR)))
+        self.assertEqual(
+            self.CategoryHandler.categories['category-c']
+            .frameworks["framework-a"]
+            .install_path,
+            os.path.expanduser(f"~/{INSTALL_DIR}/category-c/framework-a"),
+        )
 
 
 class TestFrameworkLoaderSaveConfig(BaseFrameworkLoader):
@@ -526,12 +534,20 @@ class TestFrameworkLoaderSaveConfig(BaseFrameworkLoader):
         # load custom framework-directory
         self.categoryA.frameworks["framework-b"].mark_in_config()
 
-        self.assertEqual(ConfigHandler().config,
-                         {'frameworks': {
-                             'category-a': {
-                                 'framework-b': {
-                                     'path': os.path.expanduser('~/{}/category-a/framework-b'.format(INSTALL_DIR))
-                                 }}}})
+        self.assertEqual(
+            ConfigHandler().config,
+            {
+                'frameworks': {
+                    'category-a': {
+                        'framework-b': {
+                            'path': os.path.expanduser(
+                                f'~/{INSTALL_DIR}/category-a/framework-b'
+                            )
+                        }
+                    }
+                }
+            },
+        )
 
     def test_call_setup_save_and_then_mark_in_config_tweaked_path(self):
         """Calling mark_in_config with a custom install path save it in the configuration"""
@@ -549,36 +565,71 @@ class TestFrameworkLoaderSaveConfig(BaseFrameworkLoader):
 
     def test_call_remove_from_config(self):
         """Calling remove_from_config remove a framework from the config"""
-        ConfigHandler().config = {'frameworks': {
-            'category-a': {
-                'framework-b': {'path': os.path.expanduser('~/{}/category-a/framework-b'.format(INSTALL_DIR))}
-            }}}
+        ConfigHandler().config = {
+            'frameworks': {
+                'category-a': {
+                    'framework-b': {
+                        'path': os.path.expanduser(
+                            f'~/{INSTALL_DIR}/category-a/framework-b'
+                        )
+                    }
+                }
+            }
+        }
+
         self.categoryA.frameworks["framework-b"].remove_from_config()
 
         self.assertEqual(ConfigHandler().config, {'frameworks': {'category-a': {}}})
 
     def test_call_remove_from_config_keep_other(self):
         """Calling remove_from_config remove a framework from the config but keep others"""
-        ConfigHandler().config = {'frameworks': {
-            'category-a': {
-                'framework-b': {'path': os.path.expanduser('~/{}/category-a/framework-b'.format(INSTALL_DIR))},
-                'framework-c': {'path': os.path.expanduser('~/{}/category-a/framework-c'.format(INSTALL_DIR))}
-            },
-            'category-b': {
-                'framework-b': {'path': os.path.expanduser('~/{}/category-a/framework-b'.format(INSTALL_DIR))}
-            }}}
+        ConfigHandler().config = {
+            'frameworks': {
+                'category-a': {
+                    'framework-b': {
+                        'path': os.path.expanduser(
+                            f'~/{INSTALL_DIR}/category-a/framework-b'
+                        )
+                    },
+                    'framework-c': {
+                        'path': os.path.expanduser(
+                            f'~/{INSTALL_DIR}/category-a/framework-c'
+                        )
+                    },
+                },
+                'category-b': {
+                    'framework-b': {
+                        'path': os.path.expanduser(
+                            f'~/{INSTALL_DIR}/category-a/framework-b'
+                        )
+                    }
+                },
+            }
+        }
+
         self.categoryA.frameworks["framework-b"].remove_from_config()
 
-        self.assertEqual(ConfigHandler().config,
-                         {'frameworks': {
-                             'category-a': {
-                                 'framework-c': {
-                                     'path': os.path.expanduser('~/{}/category-a/framework-c'.format(INSTALL_DIR))
-                                 }},
-                             'category-b': {
-                                 'framework-b': {
-                                     'path': os.path.expanduser('~/{}/category-a/framework-b'.format(INSTALL_DIR))
-                                 }}}})
+        self.assertEqual(
+            ConfigHandler().config,
+            {
+                'frameworks': {
+                    'category-a': {
+                        'framework-c': {
+                            'path': os.path.expanduser(
+                                f'~/{INSTALL_DIR}/category-a/framework-c'
+                            )
+                        }
+                    },
+                    'category-b': {
+                        'framework-b': {
+                            'path': os.path.expanduser(
+                                f'~/{INSTALL_DIR}/category-a/framework-b'
+                            )
+                        }
+                    },
+                }
+            },
+        )
 
 
 class TestFrameworkLoadOnDemandLoader(BaseFrameworkLoader):
@@ -1064,7 +1115,7 @@ class TestInvalidFrameworksLoader(BaseFrameworkLoader):
             get_user_frameworks_path.return_value = temp_path
             # load home framework-directory
             with patchelem(umake.frameworks, '__file__', os.path.join(self.testframeworks_dir, '__init__.py')),\
-                    patchelem(umake.frameworks, '__package__', "invalidframeworks"):
+                        patchelem(umake.frameworks, '__package__', "invalidframeworks"):
                 frameworks.load_frameworks(load_user_frameworks=False)
 
             args = Mock()
@@ -1081,7 +1132,7 @@ class TestInvalidFrameworksLoader(BaseFrameworkLoader):
             get_user_frameworks_path.return_value = temp_path
             # load home framework-directory
             with patchelem(umake.frameworks, '__file__', os.path.join(self.testframeworks_dir, '__init__.py')),\
-                    patchelem(umake.frameworks, '__package__', "invalidframeworks"):
+                        patchelem(umake.frameworks, '__package__', "invalidframeworks"):
                 frameworks.load_frameworks(load_user_frameworks=False)
 
             args = Mock()
@@ -1098,7 +1149,7 @@ class TestInvalidFrameworksLoader(BaseFrameworkLoader):
             get_user_frameworks_path.return_value = temp_path
             # load home framework-directory
             with patchelem(umake.frameworks, '__file__', os.path.join(self.testframeworks_dir, '__init__.py')),\
-                    patchelem(umake.frameworks, '__package__', "invalidframeworks"):
+                        patchelem(umake.frameworks, '__package__', "invalidframeworks"):
                 frameworks.load_frameworks(load_user_frameworks=False)
 
             args = Mock()

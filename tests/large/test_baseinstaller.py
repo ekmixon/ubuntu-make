@@ -85,8 +85,8 @@ class BaseInstallerTests(LargeFrameworkTests):
 
     def test_default_install(self):
         """Install base installer from scratch test case"""
-        self.child = spawn_process(self.command('{} base base-framework'.format(UMAKE)))
-        self.expect_and_no_warn(r"Choose installation path: {}".format(self.installed_path))
+        self.child = spawn_process(self.command(f'{UMAKE} base base-framework'))
+        self.expect_and_no_warn(f"Choose installation path: {self.installed_path}")
         self.child.sendline("")
         self.expect_and_no_warn(r"\[I Accept.*\]")  # ensure we have a license question
         self.child.sendline("a")
@@ -107,15 +107,15 @@ class BaseInstallerTests(LargeFrameworkTests):
         self.assertEqual(proc.wait(self.TIMEOUT_STOP), 143)
 
         # ensure that it's detected as installed:
-        self.child = spawn_process(self.command('{} base base-framework'.format(UMAKE)))
+        self.child = spawn_process(self.command(f'{UMAKE} base base-framework'))
         self.expect_and_no_warn(r"Base Framework is already installed.*\[.*\] ")
         self.child.sendline()
         self.wait_and_close()
 
     def test_no_license_accept(self):
         """We don't accept the license (default)"""
-        self.child = spawn_process(self.command('{} base base-framework'.format(UMAKE)))
-        self.expect_and_no_warn(r"Choose installation path: {}".format(self.installed_path))
+        self.child = spawn_process(self.command(f'{UMAKE} base base-framework'))
+        self.expect_and_no_warn(f"Choose installation path: {self.installed_path}")
         self.child.sendline("")
         self.expect_and_no_warn(r"\[I Accept.*\]")  # ensure we have a license question
         self.accept_default_and_wait()
@@ -125,12 +125,15 @@ class BaseInstallerTests(LargeFrameworkTests):
 
     def test_doesnt_accept_wrong_path(self):
         """We don't accept a wrong path"""
-        self.child = spawn_process(self.command('{} base base-framework'.format(UMAKE)))
-        self.expect_and_no_warn(r"Choose installation path: {}".format(self.installed_path))
+        self.child = spawn_process(self.command(f'{UMAKE} base base-framework'))
+        self.expect_and_no_warn(f"Choose installation path: {self.installed_path}")
         self.child.sendline(chr(127) * 100)
-        self.expect_and_no_warn(r"Choose installation path: {}".format(self.installed_path))
+        self.expect_and_no_warn(f"Choose installation path: {self.installed_path}")
         self.child.sendline(chr(127) * 100 + "/")
-        self.expect_and_no_warn(r"Choose installation path: {}".format(self.installed_path), expect_warn=True)
+        self.expect_and_no_warn(
+            f"Choose installation path: {self.installed_path}", expect_warn=True
+        )
+
         self.child.sendcontrol('C')
         self.wait_and_no_warn()
 
@@ -139,12 +142,12 @@ class BaseInstallerTests(LargeFrameworkTests):
     def test_reinstall(self):
         """Reinstall once installed"""
         for loop in ("install", "reinstall"):
-            self.child = spawn_process(self.command('{} base base-framework'.format(UMAKE)))
+            self.child = spawn_process(self.command(f'{UMAKE} base base-framework'))
             if loop == "reinstall":
                 # we only have one question, not the one about existing dir.
                 self.expect_and_no_warn(r"Base Framework is already installed.*\[.*\] ")
                 self.child.sendline("y")
-            self.expect_and_no_warn(r"Choose installation path: {}".format(self.installed_path))
+            self.expect_and_no_warn(f"Choose installation path: {self.installed_path}")
             self.child.sendline("")
             self.expect_and_no_warn(r"\[.*\] ")
             self.child.sendline("a")
@@ -166,13 +169,17 @@ class BaseInstallerTests(LargeFrameworkTests):
         for loop in ("install", "reinstall"):
             if loop == "reinstall":
                 self.installed_path = "/tmp/foo"
-                self.child = spawn_process(self.command('{} base base-framework {}'.format(UMAKE,
-                                                                                           self.installed_path)))
+                self.child = spawn_process(
+                    self.command(
+                        f'{UMAKE} base base-framework {self.installed_path}'
+                    )
+                )
+
                 self.expect_and_no_warn(r"Base Framework is already installed.*\[.*\] ")
                 self.child.sendline("y")
             else:
-                self.child = spawn_process(self.command('{} base base-framework'.format(UMAKE)))
-                self.expect_and_no_warn(r"Choose installation path: {}".format(self.installed_path))
+                self.child = spawn_process(self.command(f'{UMAKE} base base-framework'))
+                self.expect_and_no_warn(f"Choose installation path: {self.installed_path}")
                 self.child.sendline("")
             self.expect_and_no_warn(r"\[.*\] ")
             self.child.sendline("a")
@@ -189,23 +196,32 @@ class BaseInstallerTests(LargeFrameworkTests):
     def test_reinstall_other_non_empty_path(self):
         """Reinstall Base Framework on another path (non empty) once installed should remove the first version"""
         original_install_path = self.installed_path
-        if not self.in_container:
-            self.reinstalled_path = tempfile.mkdtemp()
-        else:  # we still give a path for the container
-            self.reinstalled_path = os.path.join(tempfile.gettempdir(), "tmptests")
+        self.reinstalled_path = (
+            os.path.join(tempfile.gettempdir(), "tmptests")
+            if self.in_container
+            else tempfile.mkdtemp()
+        )
+
         self.create_file(os.path.join(self.reinstalled_path, "bar"), "foo")
         for loop in ("install", "reinstall"):
             if loop == "reinstall":
                 self.installed_path = self.reinstalled_path
-                self.child = spawn_process(self.command('{} base base-framework {}'.format(UMAKE,
-                                                                                           self.installed_path)))
+                self.child = spawn_process(
+                    self.command(
+                        f'{UMAKE} base base-framework {self.installed_path}'
+                    )
+                )
+
                 self.expect_and_no_warn(r"Base Framework is already installed.*\[.*\] ")
                 self.child.sendline("y")
-                self.expect_and_no_warn(r"{} isn't an empty directory.*there\? \[.*\] ".format(self.installed_path))
+                self.expect_and_no_warn(
+                    f"{self.installed_path} isn't an empty directory.*there\? \[.*\] "
+                )
+
                 self.child.sendline("y")
             else:
-                self.child = spawn_process(self.command('{} base base-framework'.format(UMAKE)))
-                self.expect_and_no_warn(r"Choose installation path: {}".format(self.installed_path))
+                self.child = spawn_process(self.command(f'{UMAKE} base base-framework'))
+                self.expect_and_no_warn(f"Choose installation path: {self.installed_path}")
                 self.child.sendline("")
             self.expect_and_no_warn(r"\[.*\] ")
             self.child.sendline("a")
@@ -227,8 +243,8 @@ class BaseInstallerTests(LargeFrameworkTests):
                 # remove code (but not launcher)
                 self.remove_path(self.installed_path)
 
-            self.child = spawn_process(self.command('{} base base-framework'.format(UMAKE)))
-            self.expect_and_no_warn(r"Choose installation path: {}".format(self.installed_path))
+            self.child = spawn_process(self.command(f'{UMAKE} base base-framework'))
+            self.expect_and_no_warn(f"Choose installation path: {self.installed_path}")
             self.child.sendline("")
             self.expect_and_no_warn(r"\[.*\] ")
             self.child.sendline("a")
@@ -247,11 +263,14 @@ class BaseInstallerTests(LargeFrameworkTests):
                 # remove launcher, but not code
                 self.remove_path(self.get_launcher_path(self.desktop_filename))
 
-            self.child = spawn_process(self.command('{} base base-framework'.format(UMAKE)))
-            self.expect_and_no_warn(r"Choose installation path: {}".format(self.installed_path))
+            self.child = spawn_process(self.command(f'{UMAKE} base base-framework'))
+            self.expect_and_no_warn(f"Choose installation path: {self.installed_path}")
             self.child.sendline("")
             if loop == "reinstall":
-                self.expect_and_no_warn(r"{} isn't an empty directory.*there\? \[.*\] ".format(self.installed_path))
+                self.expect_and_no_warn(
+                    f"{self.installed_path} isn't an empty directory.*there\? \[.*\] "
+                )
+
                 self.child.sendline("y")
             self.expect_and_no_warn(r"\[.*\] ")
             self.child.sendline("a")
@@ -265,13 +284,13 @@ class BaseInstallerTests(LargeFrameworkTests):
     def test_xdg_data_install_path(self):
         """Install in path specified by XDG_DATA_HOME"""
         xdg_data_path = "/tmp/foo"
-        self.installed_path = "{}/umake/base/base-framework".format(xdg_data_path)
-        cmd = "XDG_DATA_HOME={} {} base base-framework".format(xdg_data_path, UMAKE)
+        self.installed_path = f"{xdg_data_path}/umake/base/base-framework"
+        cmd = f"XDG_DATA_HOME={xdg_data_path} {UMAKE} base base-framework"
         if not self.in_container:
-            cmd = 'bash -c "{}"'.format(cmd)
+            cmd = f'bash -c "{cmd}"'
 
         self.child = spawn_process(self.command(cmd))
-        self.expect_and_no_warn(r"Choose installation path: {}".format(self.installed_path))
+        self.expect_and_no_warn(f"Choose installation path: {self.installed_path}")
         self.child.sendline("")
         self.expect_and_no_warn(r"\[I Accept.*\]")
         self.accept_default_and_wait()
@@ -282,7 +301,10 @@ class BaseInstallerTests(LargeFrameworkTests):
         """We install Base Framework in a custom path"""
         # We skip the existing directory prompt
         self.installed_path = "/tmp/foo"
-        self.child = spawn_process(self.command('{} base base-framework {}'.format(UMAKE, self.installed_path)))
+        self.child = spawn_process(
+            self.command(f'{UMAKE} base base-framework {self.installed_path}')
+        )
+
         self.expect_and_no_warn(r"\[I Accept.*\]")  # ensure we have a license as the first question
         self.child.sendline("a")
         self.expect_and_no_warn(r"Installation done", timeout=self.TIMEOUT_INSTALL_PROGRESS)
@@ -302,11 +324,16 @@ class BaseInstallerTests(LargeFrameworkTests):
 
     def test_start_install_on_empty_dir(self):
         """We try to install on an existing empty dir"""
-        if not self.in_container:
-            self.installed_path = tempfile.mkdtemp()
-        else:  # we still give a path for the container
-            self.installed_path = os.path.join(tempfile.gettempdir(), "tmptests")
-        self.child = spawn_process(self.command('{} base base-framework {}'.format(UMAKE, self.installed_path)))
+        self.installed_path = (
+            os.path.join(tempfile.gettempdir(), "tmptests")
+            if self.in_container
+            else tempfile.mkdtemp()
+        )
+
+        self.child = spawn_process(
+            self.command(f'{UMAKE} base base-framework {self.installed_path}')
+        )
+
         self.expect_and_no_warn(r"\[I Accept.*\]")  # ensure we have a license as the first question
         self.accept_default_and_wait()
         self.close_and_check_status()
@@ -315,13 +342,21 @@ class BaseInstallerTests(LargeFrameworkTests):
 
     def test_start_install_on_existing_dir_refuse(self):
         """We prompt if we try to install on an existing directory which isn't empty. Refusing doesn't install"""
-        if not self.in_container:
-            self.installed_path = tempfile.mkdtemp()
-        else:  # we still give a path for the container
-            self.installed_path = os.path.join(tempfile.gettempdir(), "tmptests")
+        self.installed_path = (
+            os.path.join(tempfile.gettempdir(), "tmptests")
+            if self.in_container
+            else tempfile.mkdtemp()
+        )
+
         self.create_file(os.path.join(self.installed_path, "bar"), "foo")
-        self.child = spawn_process(self.command('{} base base-framework {}'.format(UMAKE, self.installed_path)))
-        self.expect_and_no_warn(r"{} isn't an empty directory.*there\? \[.*\] ".format(self.installed_path))
+        self.child = spawn_process(
+            self.command(f'{UMAKE} base base-framework {self.installed_path}')
+        )
+
+        self.expect_and_no_warn(
+            f"{self.installed_path} isn't an empty directory.*there\? \[.*\] "
+        )
+
         self.accept_default_and_wait()
         self.close_and_check_status()
 
@@ -329,13 +364,21 @@ class BaseInstallerTests(LargeFrameworkTests):
 
     def test_start_install_on_existing_dir_accept(self):
         """We prompt if we try to install on an existing directory which isn't empty. Accepting install"""
-        if not self.in_container:
-            self.installed_path = tempfile.mkdtemp()
-        else:  # we still give a path for the container
-            self.installed_path = os.path.join(tempfile.gettempdir(), "tmptests")
+        self.installed_path = (
+            os.path.join(tempfile.gettempdir(), "tmptests")
+            if self.in_container
+            else tempfile.mkdtemp()
+        )
+
         self.create_file(os.path.join(self.installed_path, "bar"), "foo")
-        self.child = spawn_process(self.command('{} base base-framework {}'.format(UMAKE, self.installed_path)))
-        self.expect_and_no_warn(r"{} isn't an empty directory.*there\? \[.*\] ".format(self.installed_path))
+        self.child = spawn_process(
+            self.command(f'{UMAKE} base base-framework {self.installed_path}')
+        )
+
+        self.expect_and_no_warn(
+            f"{self.installed_path} isn't an empty directory.*there\? \[.*\] "
+        )
+
         self.child.sendline("y")
         self.expect_and_no_warn(r"\[I Accept.*\]")  # ensure we have a license question
         self.child.sendline("a")
@@ -356,22 +399,22 @@ class BaseInstallerTests(LargeFrameworkTests):
 
     def test_is_default_framework(self):
         """Base Framework is chosen as the default framework"""
-        self.child = spawn_process(self.command('{} base'.format(UMAKE)))
+        self.child = spawn_process(self.command(f'{UMAKE} base'))
         # we ensure it thanks to installed_path being the base framework one
-        self.expect_and_no_warn(r"Choose installation path: {}".format(self.installed_path))
+        self.expect_and_no_warn(f"Choose installation path: {self.installed_path}")
         self.child.sendcontrol('C')
         self.wait_and_no_warn()
 
     def test_is_default_framework_with_options(self):
         """Base Framework options are sucked in as the default framework"""
-        self.child = spawn_process(self.command('{} base /tmp/foo'.format(UMAKE)))
+        self.child = spawn_process(self.command(f'{UMAKE} base /tmp/foo'))
         self.expect_and_no_warn(r"\[I Accept.*\]")  # ensure we have a license as the first question
         self.accept_default_and_wait()
         self.close_and_check_status()
 
     def test_not_default_framework_with_path_without_path_separator(self):
         """Base Framework isn't selected for default framework with path without separator"""
-        self.child = spawn_process(self.command('{} base foo'.format(UMAKE)))
+        self.child = spawn_process(self.command(f'{UMAKE} base foo'))
         self.expect_and_no_warn(r"error: argument framework: invalid choice")
         self.accept_default_and_wait()
         self.close_and_check_status(exit_status=2)
@@ -379,7 +422,7 @@ class BaseInstallerTests(LargeFrameworkTests):
     def test_is_default_framework_with_user_path(self):
         """Base Framework isn't selected for default framework with path without separator"""
         self.installed_path = "/tmp/foo"
-        self.child = spawn_process(self.command('{} base {}'.format(UMAKE, self.installed_path)))
+        self.child = spawn_process(self.command(f'{UMAKE} base {self.installed_path}'))
         self.expect_and_no_warn(r"\[I Accept.*\]")  # ensure we have a license as the first question
         self.child.sendline("a")
         self.expect_and_no_warn(r"Installation done", timeout=self.TIMEOUT_INSTALL_PROGRESS)
@@ -399,8 +442,8 @@ class BaseInstallerTests(LargeFrameworkTests):
 
     def test_removal(self):
         """Remove Base Framework with default path"""
-        self.child = spawn_process(self.command('{} base base-framework'.format(UMAKE)))
-        self.expect_and_no_warn(r"Choose installation path: {}".format(self.installed_path))
+        self.child = spawn_process(self.command(f'{UMAKE} base base-framework'))
+        self.expect_and_no_warn(f"Choose installation path: {self.installed_path}")
         self.child.sendline("")
         self.expect_and_no_warn(r"\[.*\] ")
         self.child.sendline("a")
@@ -410,7 +453,10 @@ class BaseInstallerTests(LargeFrameworkTests):
         self.assertTrue(self.path_exists(self.installed_path))
 
         # now, remove it
-        self.child = spawn_process(self.command('{} base base-framework --remove'.format(UMAKE)))
+        self.child = spawn_process(
+            self.command(f'{UMAKE} base base-framework --remove')
+        )
+
         self.wait_and_close()
 
         self.assertFalse(self.launcher_exists_and_is_pinned(self.desktop_filename))
@@ -421,7 +467,10 @@ class BaseInstallerTests(LargeFrameworkTests):
     def test_removal_non_default_path(self):
         """Remove Base Framework with non default path"""
         self.installed_path = "/tmp/foo"
-        self.child = spawn_process(self.command('{} base base-framework {}'.format(UMAKE, self.installed_path)))
+        self.child = spawn_process(
+            self.command(f'{UMAKE} base base-framework {self.installed_path}')
+        )
+
         self.expect_and_no_warn(r"\[.*\] ")
         self.child.sendline("a")
         self.expect_and_no_warn(r"Installation done", timeout=self.TIMEOUT_INSTALL_PROGRESS)
@@ -430,7 +479,10 @@ class BaseInstallerTests(LargeFrameworkTests):
         self.assertTrue(self.path_exists(self.installed_path))
 
         # now, remove it
-        self.child = spawn_process(self.command('{} base base-framework --remove'.format(UMAKE)))
+        self.child = spawn_process(
+            self.command(f'{UMAKE} base base-framework --remove')
+        )
+
         self.wait_and_close()
 
         self.assertFalse(self.launcher_exists_and_is_pinned(self.desktop_filename))
@@ -438,8 +490,8 @@ class BaseInstallerTests(LargeFrameworkTests):
 
     def test_removal_global_option(self):
         """Remove Base Framework via global option (before category) should delete it"""
-        self.child = spawn_process(self.command('{} base base-framework'.format(UMAKE)))
-        self.expect_and_no_warn(r"Choose installation path: {}".format(self.installed_path))
+        self.child = spawn_process(self.command(f'{UMAKE} base base-framework'))
+        self.expect_and_no_warn(f"Choose installation path: {self.installed_path}")
         self.child.sendline("")
         self.expect_and_no_warn(r"\[.*\] ")
         self.child.sendline("a")
@@ -449,7 +501,10 @@ class BaseInstallerTests(LargeFrameworkTests):
         self.assertTrue(self.path_exists(self.installed_path))
 
         # now, remove it
-        self.child = spawn_process(self.command('{} --remove base base-framework'.format(UMAKE)))
+        self.child = spawn_process(
+            self.command(f'{UMAKE} --remove base base-framework')
+        )
+
         self.wait_and_close()
 
         self.assertFalse(self.launcher_exists_and_is_pinned(self.desktop_filename))
@@ -458,8 +513,12 @@ class BaseInstallerTests(LargeFrameworkTests):
 
     def test_automated_install(self):
         """Install Base Framework automatically with no interactive options"""
-        self.child = spawn_process(self.command('{} base base-framework {} --accept-license'.format(UMAKE,
-                                                self.installed_path)))
+        self.child = spawn_process(
+            self.command(
+                f'{UMAKE} base base-framework {self.installed_path} --accept-license'
+            )
+        )
+
         self.expect_and_no_warn(r"Installation done", timeout=self.TIMEOUT_INSTALL_PROGRESS)
         self.wait_and_close()
 
@@ -469,7 +528,10 @@ class BaseInstallerTests(LargeFrameworkTests):
 
     def test_try_removing_uninstalled_framework(self):
         """Trying to remove an uninstalled framework will fail"""
-        self.child = spawn_process(self.command('{} base base-framework --remove'.format(UMAKE)))
+        self.child = spawn_process(
+            self.command(f'{UMAKE} base base-framework --remove')
+        )
+
         self.wait_and_close(expect_warn=True, exit_status=2)
 
     # additional test with fake md5sum
@@ -479,8 +541,8 @@ class BaseInstallerTests(LargeFrameworkTests):
             with open(self.download_page_file_path, "w") as newfile:
                 newfile.write(content.replace(self.TEST_CHECKSUM_FAKE_DATA,
                                               "c8362a0c2ffc07b1b19c4b9001c8532de5a4b8c3"))
-            self.child = spawn_process(self.command('{} base base-framework'.format(UMAKE)))
-            self.expect_and_no_warn(r"Choose installation path: {}".format(self.installed_path))
+            self.child = spawn_process(self.command(f'{UMAKE} base base-framework'))
+            self.expect_and_no_warn(f"Choose installation path: {self.installed_path}")
             self.child.sendline("")
             self.expect_and_no_warn(r"\[I Accept.*\]")  # ensure we have a license question
             self.child.sendline("a")
@@ -493,7 +555,7 @@ class BaseInstallerTests(LargeFrameworkTests):
 
     def test_install_with_no_license_in_download_page(self):
         """Installing should fail if license is not in download page"""
-        umake_command = self.command("{} base base-framework".format(UMAKE))
+        umake_command = self.command(f"{UMAKE} base base-framework")
         self.bad_download_page_test(umake_command, self.download_page_file_path)
         self.assertFalse(self.launcher_exists_and_is_pinned(self.desktop_filename))
 
@@ -502,8 +564,8 @@ class BaseInstallerTests(LargeFrameworkTests):
         with swap_file_and_restore(self.download_page_file_path) as content:
             with open(self.download_page_file_path, "w") as newfile:
                 newfile.write(content.replace('id="linux-bundle', ""))
-            self.child = spawn_process(self.command('{} base base-framework'.format(UMAKE)))
-            self.expect_and_no_warn(r"Choose installation path: {}".format(self.installed_path))
+            self.child = spawn_process(self.command(f'{UMAKE} base base-framework'))
+            self.expect_and_no_warn(f"Choose installation path: {self.installed_path}")
             self.child.sendline("")
             self.expect_and_no_warn([pexpect.EOF], timeout=self.TIMEOUT_INSTALL_PROGRESS, expect_warn=True)
             self.wait_and_close(exit_status=1)
@@ -517,8 +579,8 @@ class BaseInstallerTests(LargeFrameworkTests):
             with open(self.download_page_file_path, "w") as newfile:
                 newfile.write(content.replace(self.TEST_URL_FAKE_DATA,
                                               "https://localhost:8765/android-studio-unexisting.tgz"))
-            self.child = spawn_process(self.command('{} base base-framework'.format(UMAKE)))
-            self.expect_and_no_warn(r"Choose installation path: {}".format(self.installed_path))
+            self.child = spawn_process(self.command(f'{UMAKE} base base-framework'))
+            self.expect_and_no_warn(f"Choose installation path: {self.installed_path}")
             self.child.sendline("")
             self.expect_and_no_warn(r"\[I Accept.*\]")  # ensure we have a license question
             self.child.sendline("a")
@@ -533,8 +595,8 @@ class BaseInstallerTests(LargeFrameworkTests):
         """Download page changed address or is just 404 should be reported correctly"""
         with swap_file_and_restore(self.download_page_file_path):
             os.remove(self.download_page_file_path)
-            self.child = spawn_process(self.command('{} base base-framework'.format(UMAKE)))
-            self.expect_and_no_warn(r"Choose installation path: {}".format(self.installed_path))
+            self.child = spawn_process(self.command(f'{UMAKE} base base-framework'))
+            self.expect_and_no_warn(f"Choose installation path: {self.installed_path}")
             self.child.sendline("")
             self.expect_and_no_warn([pexpect.EOF, "ERROR: 404 Client Error: File not found"],
                                     timeout=self.TIMEOUT_INSTALL_PROGRESS, expect_warn=True)

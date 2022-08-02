@@ -46,10 +46,10 @@ def _add_to_group(user, group):
     with as_root():
         try:
             output = subprocess.check_output(["adduser", user, group])
-            logger.debug("Added {} to {}: {}".format(user, group, output))
+            logger.debug(f"Added {user} to {group}: {output}")
             return True
         except subprocess.CalledProcessError as e:
-            logger.error("Couldn't add {} to {}".format(user, group))
+            logger.error(f"Couldn't add {user} to {group}")
             return False
 
 
@@ -69,12 +69,18 @@ class Arduino(umake.frameworks.baseinstaller.BaseInstaller):
         if os.geteuid() != 0:
             self._current_user = os.getenv("USER")
         self._current_user = pwd.getpwuid(int(os.getenv("SUDO_UID", default=0))).pw_name
-        for group_name in [g.gr_name for g in grp.getgrall() if self._current_user in g.gr_mem]:
-            if group_name == self.ARDUINO_GROUP:
-                self.was_in_arduino_group = True
-                break
-        else:
-            self.was_in_arduino_group = False
+        self.was_in_arduino_group = next(
+            (
+                True
+                for group_name in [
+                    g.gr_name
+                    for g in grp.getgrall()
+                    if self._current_user in g.gr_mem
+                ]
+                if group_name == self.ARDUINO_GROUP
+            ),
+            False,
+        )
 
         super().__init__(name="Arduino",
                          description=_("The Arduino Software Distribution"),
@@ -96,20 +102,20 @@ class Arduino(umake.frameworks.baseinstaller.BaseInstaller):
 
     def parse_download_link(self, line, in_download):
         """Parse Arduino download links"""
-        if "sha512sum.txt" in line:
-            in_download = True
-        else:
-            in_download = False
+        in_download = "sha512sum.txt" in line
         if in_download:
             p = re.search(r'href=\"([^>]+\.sha512sum\.txt)\"', line)
             with suppress(AttributeError):
-                self.new_download_url = "https:" + p.group(1)
+                self.new_download_url = "https:" + p[1]
         return ((None, None), in_download)
 
     @MainLoop.in_mainloop_thread
     def get_sha_and_start_download(self, download_result):
         res = download_result[self.new_download_url].buffer.getvalue().decode()
-        line = re.search(r'.*linux{}.tar.xz'.format(self.arch_trans[get_current_arch()]), res).group(0)
+        line = re.search(
+            f'.*linux{self.arch_trans[get_current_arch()]}.tar.xz', res
+        )[0]
+
         # you get and store url and checksum
         checksum = line.split()[0]
         url = os.path.join(self.new_download_url.rpartition('/')[0], line.split()[1])
@@ -153,7 +159,7 @@ class Eagle(umake.frameworks.baseinstaller.BaseInstaller):
         if '.tar.gz' in line:
             p = re.search(r'href="([^<]*.tar.gz)"', line)
             with suppress(AttributeError):
-                url = p.group(1)
+                url = p[1]
         return ((url, None), in_download)
 
     def post_install(self):
@@ -191,8 +197,11 @@ class Fritzing(umake.frameworks.baseinstaller.BaseInstaller):
     def parse_download_link(self, line, in_download):
         url = None
         for asset in line["assets"]:
-            if "{}.linux.AMD64.tar.bz2".format(self.ubuntu_version) in asset["browser_download_url"] and \
-               ".md5" not in asset["browser_download_url"]:
+            if (
+                f"{self.ubuntu_version}.linux.AMD64.tar.bz2"
+                in asset["browser_download_url"]
+                and ".md5" not in asset["browser_download_url"]
+            ):
                 in_download = True
                 url = asset["browser_download_url"]
         return (url, in_download)
